@@ -1,6 +1,6 @@
 import { Elysia } from "elysia";
 import { jwt } from "@elysiajs/jwt";
-import type { Role } from "../generated/prisma";
+import type { Role } from "../generated/prisma/client";
 
 export const jwtPlugin = new Elysia({ name: "jwt-plugin" }).use(
   jwt({
