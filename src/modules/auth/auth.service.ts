@@ -1,6 +1,6 @@
 import prisma from "../../prisma";
 import bcrypt from "bcryptjs";
-import type { Role } from "../../generated/prisma";
+import type { Role } from "../../generated/prisma/client";
 
 export const authService = {
   async register(

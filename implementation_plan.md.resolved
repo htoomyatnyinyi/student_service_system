@@ -1,0 +1,270 @@
+# Student Services System - Implementation Plan
+
+A comprehensive student services backend system built with **ElysiaJS** + **PostgreSQL** + **Prisma ORM**, providing all major features needed for a university/school administration platform.
+
+## Feature Overview
+
+| # | Module | Key Features |
+|---|--------|-------------|
+| 1 | **Authentication** | Register, login, JWT tokens, role-based access (ADMIN, TEACHER, STUDENT) |
+| 2 | **Students** | CRUD profiles, search, filter by department/year |
+| 3 | **Departments** | CRUD departments, assign head of department |
+| 4 | **Courses** | CRUD courses, link to department, prerequisites |
+| 5 | **Sections** | Class sections per course, schedule, room, teacher assignment |
+| 6 | **Enrollment** | Students enroll/drop courses, enrollment status tracking |
+| 7 | **Grades** | Record and retrieve grades per enrollment |
+| 8 | **Attendance** | Mark and view attendance per section/student |
+| 9 | **Fees & Payments** | Fee records, payment tracking, payment status |
+| 10 | **Announcements** | Campus-wide or department-specific notices |
+| 11 | **Library** | Book catalog, borrow/return tracking |
+| 12 | **Exams** | Exam scheduling, results recording |
+
+---
+
+## Proposed Changes
+
+### 1. Project Setup & Dependencies
+
+#### [MODIFY] [package.json](file:///c:/Users/Htoo%20Myat%20Nyi%20Nyi/Desktop/service-system/package.json)
+
+Install the following dependencies:
+- `prisma` + `@prisma/client` — ORM
+- `@elysiajs/jwt` — JWT authentication
+- `@elysiajs/cors` — CORS support
+- `@elysiajs/swagger` — API documentation
+- `bcryptjs` + `@types/bcryptjs` — Password hashing
+
+```bash
+bun add @prisma/client @elysiajs/jwt @elysiajs/cors @elysiajs/swagger bcryptjs
+bun add -d prisma @types/bcryptjs
+```
+
+#### [NEW] [.env](file:///c:/Users/Htoo%20Myat%20Nyi%20Nyi/Desktop/service-system/.env)
+
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/student_services"
+JWT_SECRET="your-secret-key"
+```
+
+---
+
+### 2. Database Schema (Prisma)
+
+#### [NEW] [schema.prisma](file:///c:/Users/Htoo%20Myat%20Nyi%20Nyi/Desktop/service-system/prisma/schema.prisma)
+
+Models to create:
+
+| Model | Key Fields |
+|-------|-----------|
+| `User` | id, email, password, role (ADMIN/TEACHER/STUDENT), name |
+| `Student` | id, userId, studentId, dateOfBirth, gender, address, phone, departmentId, year, semester |
+| `Department` | id, name, code, headOfDepartmentId |
+| `Course` | id, name, code, credits, departmentId, description |
+| `CoursePrerequisite` | id, courseId, prerequisiteCourseId |
+| `Section` | id, courseId, teacherId, semester, year, room, schedule, capacity |
+| `Enrollment` | id, studentId, sectionId, status (ENROLLED/DROPPED/COMPLETED), enrolledAt |
+| `Grade` | id, enrollmentId, grade, gpa, remarks |
+| `Attendance` | id, studentId, sectionId, date, status (PRESENT/ABSENT/LATE/EXCUSED) |
+| `Fee` | id, studentId, type, amount, dueDate, semester, year |
+| `Payment` | id, feeId, amount, paidAt, method |
+| `Announcement` | id, title, content, authorId, departmentId (nullable = campus-wide), createdAt |
+| `Book` | id, title, author, isbn, category, totalCopies, availableCopies |
+| `BookBorrow` | id, bookId, studentId, borrowedAt, dueDate, returnedAt |
+| `Exam` | id, sectionId, type (MIDTERM/FINAL/QUIZ), date, duration, location |
+| `ExamResult` | id, examId, studentId, score, maxScore, remarks |
+
+---
+
+### 3. Project Structure
+
+```
+src/
+├── index.ts                  # App entry, plugin registration
+├── modules/
+│   ├── auth/
+│   │   ├── auth.controller.ts
+│   │   └── auth.service.ts
+│   ├── student/
+│   │   ├── student.controller.ts
+│   │   └── student.service.ts
+│   ├── department/
+│   │   ├── department.controller.ts
+│   │   └── department.service.ts
+│   ├── course/
+│   │   ├── course.controller.ts
+│   │   └── course.service.ts
+│   ├── section/
+│   │   ├── section.controller.ts
+│   │   └── section.service.ts
+│   ├── enrollment/
+│   │   ├── enrollment.controller.ts
+│   │   └── enrollment.service.ts
+│   ├── grade/
+│   │   ├── grade.controller.ts
+│   │   └── grade.service.ts
+│   ├── attendance/
+│   │   ├── attendance.controller.ts
+│   │   └── attendance.service.ts
+│   ├── fee/
+│   │   ├── fee.controller.ts
+│   │   └── fee.service.ts
+│   ├── announcement/
+│   │   ├── announcement.controller.ts
+│   │   └── announcement.service.ts
+│   ├── library/
+│   │   ├── library.controller.ts
+│   │   └── library.service.ts
+│   └── exam/
+│       ├── exam.controller.ts
+│       └── exam.service.ts
+├── middleware/
+│   ├── auth.middleware.ts     # JWT verification, role guard
+│   └── error.middleware.ts    # Global error handler
+├── utils/
+│   ├── pagination.ts          # Pagination helper
+│   └── response.ts            # Standardized API response format
+└── prisma.ts                  # Prisma client singleton
+```
+
+---
+
+### 4. Shared Utilities
+
+#### [NEW] `src/prisma.ts` — Prisma client singleton
+#### [NEW] `src/middleware/auth.middleware.ts` — JWT verification + role-based guard
+#### [NEW] `src/middleware/error.middleware.ts` — Global error handling
+#### [NEW] `src/utils/pagination.ts` — `paginate(page, limit)` helper
+#### [NEW] `src/utils/response.ts` — `success()` / `error()` response wrappers
+
+---
+
+### 5. API Endpoints Summary
+
+#### Auth
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/register` | Register new user |
+| POST | `/auth/login` | Login and get JWT |
+| GET | `/auth/me` | Get current user profile |
+
+#### Students
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/students` | List all students (paginated, filterable) |
+| GET | `/students/:id` | Get student by ID |
+| POST | `/students` | Create student profile |
+| PUT | `/students/:id` | Update student |
+| DELETE | `/students/:id` | Delete student |
+
+#### Departments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/departments` | List all |
+| POST | `/departments` | Create |
+| PUT | `/departments/:id` | Update |
+| DELETE | `/departments/:id` | Delete |
+
+#### Courses
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/courses` | List all (filter by department) |
+| GET | `/courses/:id` | Get course detail with prerequisites |
+| POST | `/courses` | Create |
+| PUT | `/courses/:id` | Update |
+| DELETE | `/courses/:id` | Delete |
+
+#### Sections
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/sections` | List (filter by course, semester) |
+| POST | `/sections` | Create section |
+| PUT | `/sections/:id` | Update |
+| DELETE | `/sections/:id` | Delete |
+
+#### Enrollment
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/enrollments` | Enroll student in section |
+| DELETE | `/enrollments/:id` | Drop enrollment |
+| GET | `/enrollments/student/:studentId` | Get student's enrollments |
+| GET | `/enrollments/section/:sectionId` | Get section's enrolled students |
+
+#### Grades
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/grades` | Record grade |
+| PUT | `/grades/:id` | Update grade |
+| GET | `/grades/student/:studentId` | Get student's grades (GPA) |
+
+#### Attendance
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/attendance` | Mark attendance |
+| GET | `/attendance/section/:sectionId` | Get section attendance |
+| GET | `/attendance/student/:studentId` | Get student attendance |
+
+#### Fees & Payments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/fees` | Create fee record |
+| GET | `/fees/student/:studentId` | Get student's fees |
+| POST | `/payments` | Record payment |
+| GET | `/payments/fee/:feeId` | Get payments for a fee |
+
+#### Announcements
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/announcements` | List (filter by department) |
+| POST | `/announcements` | Create |
+| PUT | `/announcements/:id` | Update |
+| DELETE | `/announcements/:id` | Delete |
+
+#### Library
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/library/books` | Search books |
+| POST | `/library/books` | Add book |
+| POST | `/library/borrow` | Borrow book |
+| PUT | `/library/return/:id` | Return book |
+| GET | `/library/borrows/student/:studentId` | Student's borrow history |
+
+#### Exams
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/exams` | Schedule exam |
+| GET | `/exams/section/:sectionId` | Get exams for section |
+| POST | `/exam-results` | Record result |
+| GET | `/exam-results/student/:studentId` | Get student's results |
+
+---
+
+### 6. Entry Point
+
+#### [MODIFY] [index.ts](file:///c:/Users/Htoo%20Myat%20Nyi%20Nyi/Desktop/service-system/src/index.ts)
+
+Wire up all module controllers, middleware, CORS, Swagger, and JWT plugin.
+
+---
+
+## Verification Plan
+
+### Automated Tests
+
+Since this is a new project, I will verify by:
+
+1. **Database migration** — Run `bunx prisma migrate dev` and confirm all tables are created
+2. **Server startup** — Run `bun run dev` and confirm the server starts without errors
+3. **Swagger documentation** — Open `http://localhost:3000/swagger` in browser and verify all endpoints are listed
+4. **API endpoint testing** — Use the browser tool to test key flows:
+   - Register a user → Login → Access protected routes
+   - Create department → Create course → Create section
+   - Create student → Enroll in section → Record grade
+   - Create fee → Record payment
+   - Create announcement
+   - Add book → Borrow → Return
+   - Schedule exam → Record result
+
+### Manual Verification
+
+- User can check all endpoints via the Swagger UI at `http://localhost:3000/swagger`
+- User can test flows with their preferred API client (Postman, Insomnia, etc.)

@@ -1,0 +1,32 @@
+
+###
+GET http://localhost:3000
+
+###
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@mail.com",
+    "password": "admin123"
+}
+###
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+    "email": "admin@mail.com",
+    "password": "admin123",
+    "role": "ADMIN",
+    "name": "Admin"
+}
+###
+
+GET http://localhost:3000/auth/me
+###
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImU0OWRkZDYyLTkxYzktNDQwOC05YWRmLWVjZmJjNzdjNDhlMyIsInJvbGUiOiJTVFVERU5UIiwiaWF0IjoxNzcyMDc2NDIzfQ.t5jakLrarZFeM3Zra5jaV7cyAB7mbKEo7tjXXeXRQso
+
+###
+GET http://localhost:3000/auth/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjNkYzQ5ODFlLTU4MjYtNDQ3Mi1hODI0LWY4NmVmOGQ5ZGIzNyIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3MjA4Mzc1OH0.CvHwa4ZZkjgqMvs6DkxqtE9RTXoHtpPUqGk5P39UMgY
+    
